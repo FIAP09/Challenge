@@ -1,0 +1,9 @@
+services:
+  mockoon:
+    image: mockoon/cli:latest
+    command: --data /data/omni-vital-api.json --port 23984
+    volumes:
+      - ./mockoon:/data
+    ports:
+      - "23984:23984"
+    restart: unless-stopped

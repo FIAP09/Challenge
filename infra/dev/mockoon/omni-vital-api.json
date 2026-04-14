@@ -1,0 +1,106 @@
+{
+  "uuid": "omni-vital-mock-env",
+  "lastMigration": 32,
+  "name": "Omni Vital API",
+  "latency": 200,
+  "port": 23984,
+  "routes": [
+    {
+      "uuid": "auth-login",
+      "method": "post",
+      "endpoint": "auth/login",
+      "responses": [
+        {
+          "uuid": "login-200",
+          "statusCode": 200,
+          "default": true,
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{ \"access_token\": \"mock.jwt.token\", \"token_type\": \"bearer\" }"
+        }
+      ]
+    },
+    {
+      "uuid": "auth-me",
+      "method": "get",
+      "endpoint": "auth/me",
+      "responses": [
+        {
+          "uuid": "me-200",
+          "statusCode": 200,
+          "default": true,
+          "body": "{ \"id\": 1, \"name\": \"Dr. Hugo Lima\", \"email\": \"hugo@hospital.com\", \"role\": \"medico\", \"hospital_id\": 1, \"is_active\": true }"
+        }
+      ]
+    },
+    {
+      "uuid": "dashboard-summary",
+      "method": "get",
+      "endpoint": "dashboard/summary",
+      "responses": [
+        {
+          "uuid": "summary-200",
+          "statusCode": 200,
+          "default": true,
+          "body": "{ \"surgeries_today\": 12, \"in_surgery\": 3, \"in_recovery\": 4, \"with_alert\": 1, \"scheduled\": 5 }"
+        }
+      ]
+    },
+    {
+      "uuid": "surgeries-list",
+      "method": "get",
+      "endpoint": "surgeries",
+      "responses": [
+        {
+          "uuid": "surgeries-200",
+          "statusCode": 200,
+          "default": true,
+          "body": "[ { \"id\": 1, \"patient_name\": \"Joao Silva\", \"type\": \"bariatrica\", \"status\": \"IN_SURGERY\", \"scheduled_at\": \"2026-04-14T08:00:00Z\", \"started_at\": \"2026-04-14T08:15:00Z\", \"risk_level\": \"alto\" } ]"
+        }
+      ]
+    },
+    {
+      "uuid": "surgery-monitor",
+      "method": "get",
+      "endpoint": "surgeries/:id/monitor",
+      "responses": [
+        {
+          "uuid": "monitor-200",
+          "statusCode": 200,
+          "default": true,
+          "body": "{ \"surgery_id\": 1, \"patient\": { \"id\": 1, \"name\": \"Joao Silva\", \"age\": 42, \"bmi\": 48.2, \"risk_level\": \"alto\" }, \"status\": \"IN_SURGERY\", \"started_at\": \"2026-04-14T08:15:00Z\", \"expected_duration_minutes\": 120, \"vitals\": { \"heart_rate\": 85, \"blood_pressure_systolic\": 120, \"blood_pressure_diastolic\": 80, \"oxygen_level\": 98, \"temperature\": 36.5, \"bleeding_ml\": 150, \"updated_at\": \"2026-04-14T09:58:00Z\" }, \"active_alerts\": [] }"
+        }
+      ]
+    },
+    {
+      "uuid": "alerts-list",
+      "method": "get",
+      "endpoint": "alerts",
+      "responses": [
+        {
+          "uuid": "alerts-200",
+          "statusCode": 200,
+          "default": true,
+          "body": "[ { \"id\": 1, \"patient_name\": \"Joao Silva\", \"surgery_id\": 1, \"type\": \"LOW_BLOOD_PRESSURE\", \"severity\": \"CRITICAL\", \"message\": \"Pressao arterial baixa detectada\", \"created_at\": \"2026-04-14T09:30:00Z\", \"resolved_at\": null } ]"
+        }
+      ]
+    },
+    {
+      "uuid": "patients-list",
+      "method": "get",
+      "endpoint": "patients",
+      "responses": [
+        {
+          "uuid": "patients-200",
+          "statusCode": 200,
+          "default": true,
+          "body": "[ { \"id\": 1, \"name\": \"Joao Silva\", \"birth_date\": \"1984-03-20\", \"weight\": 135, \"height\": 1.67, \"bmi\": 48.2, \"risk_level\": \"alto\", \"surgery_type\": \"bariatrica\", \"status\": \"IN_SURGERY\" } ]"
+        }
+      ]
+    }
+  ]
+}

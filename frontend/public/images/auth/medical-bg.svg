@@ -1,0 +1,45 @@
+<svg width="1600" height="1200" viewBox="0 0 1600 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="1200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#112642"/>
+      <stop offset="1" stop-color="#07122E"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(360 280) rotate(25) scale(520 380)">
+      <stop stop-color="#5B8AB8" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#5B8AB8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1160 860) rotate(15) scale(620 420)">
+      <stop stop-color="#2E6EA2" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#2E6EA2" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur" x="-100" y="-100" width="1800" height="1400" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="1200" fill="url(#bg)"/>
+  <rect width="1600" height="1200" fill="url(#glowA)"/>
+  <rect width="1600" height="1200" fill="url(#glowB)"/>
+
+  <g opacity="0.2">
+    <path d="M180 860C300 710 440 650 640 690C780 718 894 796 1020 780C1190 758 1290 620 1420 500" stroke="#8FB4D6" stroke-width="2"/>
+    <path d="M120 940C320 760 470 730 620 760C830 802 928 920 1140 914C1278 910 1390 860 1500 760" stroke="#7AA4CB" stroke-width="1.5"/>
+  </g>
+
+  <g opacity="0.18">
+    <rect x="120" y="120" width="130" height="130" rx="12" stroke="#A7C5E0"/>
+    <path d="M184 146V224M145 185H223" stroke="#C3D8EC" stroke-width="3" stroke-linecap="round"/>
+    <rect x="1290" y="940" width="130" height="130" rx="12" stroke="#A7C5E0"/>
+    <path d="M1354 966V1044M1315 1005H1393" stroke="#C3D8EC" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <g filter="url(#blur)" opacity="0.32">
+    <ellipse cx="560" cy="640" rx="120" ry="160" fill="#AFC8DE"/>
+    <ellipse cx="525" cy="565" rx="42" ry="42" fill="#C9DCEC"/>
+    <rect x="500" y="620" width="120" height="180" rx="48" fill="#9AB6D0"/>
+
+    <ellipse cx="760" cy="670" rx="112" ry="148" fill="#9FBED8"/>
+    <ellipse cx="735" cy="596" rx="38" ry="38" fill="#C9DCEC"/>
+    <rect x="700" y="646" width="116" height="170" rx="46" fill="#8EAFCC"/>
+  </g>
+</svg>

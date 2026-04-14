@@ -1,0 +1,5 @@
+tailadmin-vue-pro-2.0-main
+node_modules
+dist
+.DS_Store
+.cursor
