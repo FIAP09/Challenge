@@ -3,39 +3,28 @@ import { ChevronDown, ChevronUp } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { alertsService } from '@/services/alerts.service'
-import { surgeriesService } from '@/services/surgeries.service'
 import type { Alert } from '@/types/alert'
-import type { SurgeryType } from '@/types/surgery'
 
 const alerts = ref<Alert[]>([])
 const severityFilter = ref<'ALL' | 'CRITICAL' | 'WARNING'>('ALL')
-const surgeryTypeFilter = ref<'ALL' | SurgeryType>('ALL')
 const viewMode = ref<'grid' | 'list'>('list')
 const patientQuery = ref('')
-const surgeryTypeById = ref<Record<number, SurgeryType>>({})
 const isFiltersOpen = ref(false)
 const perPage = ref(10)
 const currentPage = ref(1)
 
 onMounted(async () => {
-  const [alertsList, surgeries] = await Promise.all([alertsService.list(), surgeriesService.list()])
-  alerts.value = alertsList
-  surgeryTypeById.value = surgeries.reduce<Record<number, SurgeryType>>((acc, surgery) => {
-    acc[surgery.id] = surgery.type
-    return acc
-  }, {})
+  alerts.value = await alertsService.list()
 })
 
 const filteredAlerts = computed(() => {
-  return alerts.value.filter((alert) => {
+  return alerts.value.filter((alert: Alert) => {
     const matchesSeverity = severityFilter.value === 'ALL' || alert.severity === severityFilter.value
-    const currentType = surgeryTypeById.value[alert.surgery_id]
-    const matchesType = surgeryTypeFilter.value === 'ALL' || currentType === surgeryTypeFilter.value
     const matchesPatient =
       patientQuery.value.trim().length === 0 ||
       alert.patient_name.toLowerCase().includes(patientQuery.value.trim().toLowerCase())
 
-    return matchesSeverity && matchesType && matchesPatient
+    return matchesSeverity && matchesPatient
   })
 })
 
@@ -53,11 +42,6 @@ const pageLabel = computed(() => {
   return `Mostrando ${start}-${end} de ${filteredAlerts.value.length}`
 })
 
-function surgeryTypeLabel(type: SurgeryType | undefined) {
-  if (!type) return '—'
-  return type === 'bariatrica' ? 'Bariátrica' : 'Cesárea'
-}
-
 function severityLabel(s: Alert['severity']) {
   return s === 'CRITICAL' ? 'Crítico' : 'Aviso'
 }
@@ -73,7 +57,6 @@ function runSearch() {
 function clearFilters() {
   patientQuery.value = ''
   severityFilter.value = 'ALL'
-  surgeryTypeFilter.value = 'ALL'
   perPage.value = 10
   currentPage.value = 1
 }
@@ -96,25 +79,10 @@ function alertBadgeClass(alert: Alert) {
     <div>
       <h2 class="text-2xl font-semibold text-slate-700 dark:text-slate-100">Alertas</h2>
       <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Painel de sinais clínicos e operacionais vinculados aos procedimentos. Use a simulação para testar notificações com som.
+        Painel de sinais clínicos e operacionais vinculados aos procedimentos bariátricos.
       </p>
     </div>
 
-    <div class="border-b border-slate-200 dark:border-slate-700">
-      <div class="flex flex-wrap items-center gap-5">
-        <span
-          class="border-b-2 border-[#FFE14D] px-1 pb-2 text-sm font-semibold text-slate-700 dark:text-slate-100"
-        >
-          Listagem
-        </span>
-        <RouterLink
-          to="/app/alerts/simulacao"
-          class="border-b-2 border-transparent px-1 pb-2 text-sm font-semibold text-slate-500 transition hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-        >
-          Simulação
-        </RouterLink>
-      </div>
-    </div>
 
     <div class="flex flex-wrap items-center gap-2">
       <div class="inline-flex overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600">
@@ -176,7 +144,7 @@ function alertBadgeClass(alert: Alert) {
           Refine por severidade e tipo de procedimento; controle a paginação na visualização em lista.
         </p>
       </div>
-      <div v-if="isFiltersOpen" class="mt-3 grid gap-3 md:grid-cols-3">
+      <div v-if="isFiltersOpen" class="mt-3 grid gap-3 md:grid-cols-2">
         <div>
           <label class="mb-1 block text-sm font-semibold text-slate-500 dark:text-slate-400">Severidade</label>
           <select
@@ -187,18 +155,6 @@ function alertBadgeClass(alert: Alert) {
             <option value="ALL">Todas</option>
             <option value="CRITICAL">Crítico</option>
             <option value="WARNING">Aviso</option>
-          </select>
-        </div>
-        <div>
-          <label class="mb-1 block text-sm font-semibold text-slate-500 dark:text-slate-400">Tipo de procedimento</label>
-          <select
-            v-model="surgeryTypeFilter"
-            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-            @change="runSearch"
-          >
-            <option value="ALL">Todos os tipos</option>
-            <option value="bariatrica">Bariátrica</option>
-            <option value="cesariana">Cesárea</option>
           </select>
         </div>
         <div>
@@ -213,7 +169,7 @@ function alertBadgeClass(alert: Alert) {
             <option :value="50">50</option>
           </select>
         </div>
-        <div class="flex items-end md:col-span-3">
+        <div class="flex items-end md:col-span-2">
           <button
             type="button"
             class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 sm:w-auto"
@@ -240,7 +196,7 @@ function alertBadgeClass(alert: Alert) {
           <div class="min-w-0">
             <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-100">{{ alert.patient_name }}</h3>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {{ surgeryTypeLabel(surgeryTypeById[alert.surgery_id]) }} · {{ formatAlertTime(alert.created_at) }}
+              Bariátrica · {{ formatAlertTime(alert.created_at) }}
             </p>
           </div>
           <span class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="alertBadgeClass(alert)">
@@ -248,18 +204,12 @@ function alertBadgeClass(alert: Alert) {
           </span>
         </div>
         <p class="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{{ alert.message }}</p>
-        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+        <div class="mt-4">
           <RouterLink
-            :to="`/app/surgeries/${alert.surgery_id}/monitor`"
+            :to="`/app/patients/${alert.surgery_id}`"
             class="inline-flex justify-center rounded-lg bg-[#FFE14D] px-4 py-2.5 text-center text-sm font-semibold text-slate-700 transition hover:brightness-95"
           >
-            Abrir monitor
-          </RouterLink>
-          <RouterLink
-            to="/app/alerts/simulacao"
-            class="inline-flex justify-center rounded-lg border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-          >
-            Simulação
+            Ver paciente
           </RouterLink>
         </div>
       </article>
@@ -297,7 +247,7 @@ function alertBadgeClass(alert: Alert) {
                   {{ severityLabel(alert.severity) }}
                 </span>
               </td>
-              <td class="p-3">{{ surgeryTypeLabel(surgeryTypeById[alert.surgery_id]) }}</td>
+              <td class="p-3">Bariátrica</td>
               <td class="max-w-xs truncate p-3 text-slate-600 dark:text-slate-300" :title="alert.message">
                 {{ alert.message }}
               </td>
@@ -306,10 +256,10 @@ function alertBadgeClass(alert: Alert) {
               </td>
               <td class="p-3">
                 <RouterLink
-                  :to="`/app/surgeries/${alert.surgery_id}/monitor`"
+                  :to="`/app/patients/${alert.surgery_id}`"
                   class="text-sm font-semibold text-[#FFE14D] hover:underline"
                 >
-                  Monitor
+                  Detalhes
                 </RouterLink>
               </td>
             </tr>

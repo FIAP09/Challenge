@@ -75,9 +75,9 @@ watch(
           @toggle-sidebar="toggleSidebar"
         />
         <main
-          class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pt-6 md:px-8 md:py-8 lg:px-12 lg:py-10 xl:px-14 xl:py-12"
+          class="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pt-6 md:px-8 md:py-8 lg:px-12 lg:py-10 xl:px-14 xl:py-12"
         >
-          <div class="mx-auto w-full min-w-0 max-w-[1480px]">
+          <div class="mx-auto flex w-full min-h-0 min-w-0 max-w-[1480px] flex-1 flex-col">
             <RouterView />
           </div>
         </main>

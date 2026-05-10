@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import { useViewAs } from '@/composables/useViewAs'
 import { patientsService } from '@/services/patients.service'
@@ -33,6 +34,7 @@ function persistCompanions(list: Companion[]) {
   }
 }
 
+const router = useRouter()
 const patients = ref<Patient[]>([])
 const companions = ref<Companion[]>([])
 
@@ -41,7 +43,6 @@ const activeTab = ref<'list' | 'add' | 'edit' | 'companions'>('list')
 const editingPatientId = ref<number | null>(null)
 const companionsPatientId = ref<number | null>(null)
 const searchQuery = ref('')
-const surgeryTypeFilter = ref<'ALL' | Patient['surgery_type']>('ALL')
 const perPage = ref(10)
 const currentPage = ref(1)
 const isFiltersOpen = ref(false)
@@ -61,7 +62,6 @@ const newCompanionForPatientForm = ref({
 const editForm = ref({
   id: 0,
   name: '',
-  surgery_type: 'bariatrica' as Patient['surgery_type'],
   risk_level: 'baixo' as Patient['risk_level'],
   bmi: 0,
 })
@@ -110,15 +110,16 @@ const submitAdd = () => {
       height: 0,
       bmi: 0,
       risk_level: 'baixo',
-      surgery_type: 'bariatrica',
       status: 'REQUESTED',
+      initial_weight: 0,
+      target_weight: 0,
     })
   } else {
     if (addForm.value.linkedPatientId == null) {
       toast.error('Selecione o paciente ao qual este acompanhante será vinculado.')
       return
     }
-    const patient = patients.value.find((p) => p.id === addForm.value.linkedPatientId)
+    const patient = patients.value.find((p: Patient) => p.id === addForm.value.linkedPatientId)
     if (!patient) {
       toast.error('Paciente inválido.')
       return
@@ -166,10 +167,8 @@ function companionsForPatient(patientId: number): Companion[] {
 
 const filteredPatients = computed(() => {
   const term = searchQuery.value.trim().toLowerCase()
-  return patients.value.filter((patient) => {
-    const matchesTerm = !term || `${patient.name} ${patient.surgery_type} ${patient.risk_level}`.toLowerCase().includes(term)
-    const matchesType = surgeryTypeFilter.value === 'ALL' || patient.surgery_type === surgeryTypeFilter.value
-    return matchesTerm && matchesType
+  return patients.value.filter((patient: Patient) => {
+    return !term || `${patient.name} ${patient.risk_level}`.toLowerCase().includes(term)
   })
 })
 
@@ -193,11 +192,14 @@ const openEditTab = (patient: Patient) => {
   editForm.value = {
     id: patient.id,
     name: patient.name,
-    surgery_type: patient.surgery_type,
     risk_level: patient.risk_level,
     bmi: patient.bmi,
   }
   activeTab.value = 'edit'
+}
+
+const openPatientDetail = (patient: Patient) => {
+  router.push(`/app/patients/${patient.id}`)
 }
 
 const openCompanionsTab = (patient: Patient) => {
@@ -206,12 +208,11 @@ const openCompanionsTab = (patient: Patient) => {
 }
 
 const submitEdit = () => {
-  const index = patients.value.findIndex((patient) => patient.id === editForm.value.id)
+  const index = patients.value.findIndex((patient: Patient) => patient.id === editForm.value.id)
   if (index < 0) return
   patients.value[index] = {
     ...patients.value[index],
     name: editForm.value.name,
-    surgery_type: editForm.value.surgery_type,
     risk_level: editForm.value.risk_level,
     bmi: editForm.value.bmi,
   }
@@ -228,7 +229,7 @@ const closeCompanionsTab = () => {
   activeTab.value = 'list'
 }
 
-const companionsPatient = computed(() => patients.value.find((patient) => patient.id === companionsPatientId.value) ?? null)
+const companionsPatient = computed(() => patients.value.find((patient: Patient) => patient.id === companionsPatientId.value) ?? null)
 
 const runSearch = () => {
   currentPage.value = 1
@@ -236,19 +237,18 @@ const runSearch = () => {
 
 const clearFilters = () => {
   searchQuery.value = ''
-  surgeryTypeFilter.value = 'ALL'
   perPage.value = 10
   currentPage.value = 1
 }
 
 watch(
   () => addForm.value.profile,
-  (p) => {
+  (p: string) => {
     if (p === 'paciente') {
       addForm.value.linkedPatientId = null
     } else if (patients.value.length > 0) {
       const cur = addForm.value.linkedPatientId
-      const ok = patients.value.some((x) => x.id === cur)
+      const ok = patients.value.some((x: Patient) => x.id === cur)
       if (!ok) addForm.value.linkedPatientId = patients.value[0].id
     }
   },
@@ -256,9 +256,9 @@ watch(
 
 watch(
   () => patients.value,
-  (list) => {
+  (list: Patient[]) => {
     if (addForm.value.profile !== 'acompanhante' || list.length === 0) return
-    const ok = list.some((x) => x.id === addForm.value.linkedPatientId)
+    const ok = list.some((x: Patient) => x.id === addForm.value.linkedPatientId)
     if (!ok) addForm.value.linkedPatientId = list[0].id
   },
   { deep: true },
@@ -333,7 +333,7 @@ watch(
             v-model.number="addForm.linkedPatientId"
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-base dark:border-slate-600 dark:bg-slate-800"
           >
-            <option v-for="p in patients" :key="p.id" :value="p.id">{{ p.name }} · {{ p.surgery_type }}</option>
+            <option v-for="p in patients" :key="p.id" :value="p.id">{{ p.name }}</option>
           </select>
           <p v-else class="rounded-lg border border-dashed border-slate-300 px-3 py-3 text-sm text-slate-500 dark:border-slate-600">
             Cadastre um paciente antes de vincular acompanhantes.
@@ -368,10 +368,6 @@ watch(
       <div class="grid gap-3 md:grid-cols-2">
         <input v-model="editForm.name" type="text" placeholder="Nome" class="rounded-lg border border-slate-300 bg-white px-3 py-3 text-base dark:border-slate-600 dark:bg-slate-800" />
         <input v-model.number="editForm.bmi" type="number" step="0.1" placeholder="IMC" class="rounded-lg border border-slate-300 bg-white px-3 py-3 text-base dark:border-slate-600 dark:bg-slate-800" />
-        <select v-model="editForm.surgery_type" class="rounded-lg border border-slate-300 bg-white px-3 py-3 text-base dark:border-slate-600 dark:bg-slate-800">
-          <option value="bariatrica">Bariátrica</option>
-          <option value="cesariana">Cesárea</option>
-        </select>
         <select v-model="editForm.risk_level" class="rounded-lg border border-slate-300 bg-white px-3 py-3 text-base dark:border-slate-600 dark:bg-slate-800">
           <option value="baixo">Baixo</option>
           <option value="medio">Médio</option>
@@ -452,8 +448,11 @@ watch(
         <div class="flex items-start justify-between gap-3">
           <div>
             <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-100">{{ patient.name }}</h3>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">IMC {{ patient.bmi }} · risco {{ patient.risk_level }} · {{ patient.surgery_type }}</p>
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">IMC {{ patient.bmi }} · risco {{ patient.risk_level }}</p>
           </div>
+          <button class="rounded-lg bg-[#FFE14D] px-4 py-2 text-sm font-semibold text-slate-700 transition hover:brightness-95" @click="openPatientDetail(patient)">
+            Ver detalhe
+          </button>
           <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800" @click="openEditTab(patient)">
             Editar
           </button>
@@ -519,15 +518,7 @@ watch(
             </button>
             <p class="text-sm text-slate-500 dark:text-slate-400">Refine a busca e controle a paginação com filtros compactos.</p>
           </div>
-          <div v-if="isFiltersOpen" class="mt-3 grid gap-3 md:grid-cols-3">
-            <div>
-              <label class="mb-1 block text-sm font-semibold text-slate-500 dark:text-slate-400">Tipo de cirurgia</label>
-              <select v-model="surgeryTypeFilter" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800">
-                <option value="ALL">Todos os tipos</option>
-                <option value="bariatrica">Bariátrica</option>
-                <option value="cesariana">Cesariana</option>
-              </select>
-            </div>
+          <div v-if="isFiltersOpen" class="mt-3 grid gap-3 md:grid-cols-2">
             <div>
               <label class="mb-1 block text-sm font-semibold text-slate-500 dark:text-slate-400">Itens por página</label>
               <select v-model.number="perPage" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800">
@@ -573,7 +564,8 @@ watch(
                   </td>
                   <td class="p-3">
                     <div class="flex items-center gap-3">
-                      <button class="text-sm font-semibold text-[#FFE14D] hover:underline" @click="openEditTab(patient)">Editar</button>
+                      <button class="text-sm font-semibold text-[#FFE14D] hover:underline" @click="openPatientDetail(patient)">Ver detalhe</button>
+                      <button class="text-sm font-semibold text-slate-500 hover:underline dark:text-slate-300" @click="openEditTab(patient)">Editar</button>
                       <button class="text-sm font-semibold text-slate-500 hover:underline dark:text-slate-300" @click="openCompanionsTab(patient)">Acompanhantes</button>
                     </div>
                   </td>

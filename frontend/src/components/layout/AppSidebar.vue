@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { Bell, ChevronDown, ClipboardList, HeartPulse, Home, UserRound, Users } from 'lucide-vue-next'
+import { Bell, BookOpen, ChevronDown, ClipboardList, Home, UserRound, Users } from 'lucide-vue-next'
 import { useViewAs } from '@/composables/useViewAs'
 
 const route = useRoute()
-const { canModule } = useViewAs()
+const { canModule, currentContext, activeViewAs } = useViewAs()
 const props = defineProps<{
   collapsed?: boolean
-  /** Abaixo de lg: menu em drawer */
   isMobileLayout?: boolean
   mobileOpen?: boolean
 }>()
@@ -16,10 +15,10 @@ const expandedModule = ref<string | null>(null)
 
 const iconMap = {
   Início: Home,
-  Monitor: HeartPulse,
   Alertas: Bell,
   Pacientes: UserRound,
   Avaliações: ClipboardList,
+  Orientações: BookOpen,
   Equipe: Users,
 } as const
 
@@ -28,17 +27,31 @@ type SidebarChild = {
   label: string
   show: boolean
   exact?: boolean
-  monitorRoute?: boolean
 }
 
 type SidebarItem = {
   label: keyof typeof iconMap
+  displayLabel?: string
   to: string
   show: boolean
   exact?: boolean
-  monitorRoute?: boolean
   children?: SidebarChild[]
 }
+
+const isPatientOrCompanion = computed(() =>
+  currentContext.value === 'paciente' || currentContext.value === 'acompanhante',
+)
+
+const patientDetailPath = computed(() => {
+  const pid = activeViewAs.value?.linkedPatientId
+  return pid ? `/app/patients/${pid}` : '/app/patients'
+})
+
+const patientMenuLabel = computed(() => {
+  if (currentContext.value === 'paciente') return 'Meus Dados'
+  if (currentContext.value === 'acompanhante') return 'Paciente'
+  return undefined
+})
 
 const items = computed<SidebarItem[]>(() => [
   {
@@ -48,10 +61,17 @@ const items = computed<SidebarItem[]>(() => [
     exact: true,
   },
   {
-    label: 'Monitor',
-    to: '/app/surgeries/1/monitor',
-    show: canModule('monitor'),
-    monitorRoute: true,
+    label: 'Pacientes',
+    displayLabel: patientMenuLabel.value,
+    to: isPatientOrCompanion.value ? patientDetailPath.value : '/app/patients',
+    show: canModule('pacientes'),
+    exact: isPatientOrCompanion.value,
+  },
+  {
+    label: 'Avaliações',
+    to: '/app/journey-evaluations',
+    show: canModule('pacientes') && !isPatientOrCompanion.value,
+    exact: true,
   },
   {
     label: 'Alertas',
@@ -59,15 +79,9 @@ const items = computed<SidebarItem[]>(() => [
     show: canModule('alertas'),
   },
   {
-    label: 'Pacientes',
-    to: '/app/patients',
-    show: canModule('pacientes'),
-    exact: true,
-  },
-  {
-    label: 'Avaliações',
-    to: '/app/journey-evaluations',
-    show: canModule('pacientes'),
+    label: 'Orientações',
+    to: '/app/orientations',
+    show: canModule('orientacoes'),
     exact: true,
   },
   {
@@ -81,14 +95,13 @@ const items = computed<SidebarItem[]>(() => [
 const visibleChildren = (item: SidebarItem) => (item.children ?? []).filter((child) => child.show)
 
 const isChildActive = (to: string, child?: SidebarChild) => {
-  if (child?.monitorRoute) return /^\/app\/surgeries\/\d+\/monitor$/.test(route.path)
   if (child?.exact) return route.path === to
   if (to === '/app/patients') return route.path === '/app/patients'
   return route.path === to || route.path.startsWith(`${to}/`)
 }
 
 const isModuleActive = (item: SidebarItem) => {
-  if (item.monitorRoute) return /^\/app\/surgeries\/\d+\/monitor$/.test(route.path)
+  if (item.label === 'Pacientes') return route.path.startsWith('/app/patients')
   if (item.exact) return route.path === item.to
   return route.path === item.to || route.path.startsWith(`${item.to}/`)
 }
@@ -99,13 +112,13 @@ watch(
   [items, () => route.path, () => props.collapsed, () => props.isMobileLayout],
   () => {
     if (props.collapsed && !props.isMobileLayout) return
-    const activeItem = items.value.find((item) => item.show && visibleChildren(item).length > 0 && isModuleActive(item))
+    const activeItem = items.value.find((item: SidebarItem) => item.show && visibleChildren(item).length > 0 && isModuleActive(item))
     if (activeItem) {
       expandedModule.value = activeItem.label
       return
     }
     if (!expandedModule.value) {
-      const firstVisible = items.value.find((item) => item.show)
+      const firstVisible = items.value.find((item: SidebarItem) => item.show)
       expandedModule.value = firstVisible?.label ?? null
     }
   },
@@ -155,7 +168,7 @@ const toggleModule = (label: string) => {
             :title="!showLabels ? item.label : ''"
           >
             <component :is="iconMap[item.label as keyof typeof iconMap]" :size="18" class="shrink-0" />
-            <span v-if="showLabels" class="truncate">{{ item.label }}</span>
+            <span v-if="showLabels" class="truncate">{{ item.displayLabel ?? item.label }}</span>
           </RouterLink>
           <button
             v-if="showLabels && visibleChildren(item).length > 0"

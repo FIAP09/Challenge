@@ -7,23 +7,14 @@ const MOCK_PATIENTS: Patient[] = [
     id: 1,
     name: 'Joao Silva',
     birth_date: '1987-03-10',
-    weight: 118,
+    weight: 95,
     height: 1.79,
-    bmi: 36.8,
+    bmi: 29.6,
     risk_level: 'medio',
-    surgery_type: 'bariatrica',
-    status: 'IN_SURGERY',
-  },
-  {
-    id: 2,
-    name: 'Maria Santos',
-    birth_date: '1994-09-18',
-    weight: 76,
-    height: 1.67,
-    bmi: 27.2,
-    risk_level: 'baixo',
-    surgery_type: 'cesariana',
     status: 'IN_RECOVERY',
+    initial_weight: 120,
+    target_weight: 85,
+    surgery_date: '2026-01-15',
   },
   {
     id: 3,
@@ -33,8 +24,21 @@ const MOCK_PATIENTS: Patient[] = [
     height: 1.64,
     bmi: 38.7,
     risk_level: 'alto',
-    surgery_type: 'bariatrica',
     status: 'SCHEDULED',
+    initial_weight: 104,
+    target_weight: 70,
+  },
+  {
+    id: 4,
+    name: 'Carlos Mendes',
+    birth_date: '1990-07-22',
+    weight: 130,
+    height: 1.75,
+    bmi: 42.4,
+    risk_level: 'medio',
+    status: 'APPROVED',
+    initial_weight: 130,
+    target_weight: 88,
   },
 ]
 
@@ -46,5 +50,10 @@ export const patientsService = {
     } catch {
       return MOCK_PATIENTS
     }
+  },
+
+  async get(id: number): Promise<Patient | null> {
+    const all = await this.list()
+    return all.find((p) => p.id === id) ?? null
   },
 }

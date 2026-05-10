@@ -2,10 +2,12 @@
 import {
   AlertTriangle,
   ArrowRight,
+  BookOpen,
   Calendar,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Users,
 } from 'lucide-vue-next'
 import { computed, onMounted, ref, watch } from 'vue'
 import ExpandableDetailRow from '@/components/journey/ExpandableDetailRow.vue'
@@ -19,6 +21,8 @@ import {
   getPatientDashboardMock,
   resolvePatientJourneyType,
   type ExamStatus,
+  type GoalItem,
+  type GoalProgressEntry,
   type JourneyMoment,
 } from '@/constants/patient-journey-content'
 import { evaluationSubjectProfileId } from '@/constants/view-as'
@@ -27,7 +31,7 @@ import { surgeriesService } from '@/services/surgeries.service'
 import { useAlertsStore } from '@/stores/alerts.store'
 import { usePatientJourneyEvaluationsStore } from '@/stores/patient-journey-evaluations.store'
 import type { Alert } from '@/types/alert'
-import type { DashboardSummary, RiskLevel, Surgery, SurgeryStatus, SurgeryType } from '@/types/surgery'
+import type { DashboardSummary, RiskLevel, Surgery, SurgeryStatus } from '@/types/surgery'
 
 const summary = ref<DashboardSummary | null>(null)
 const surgeries = ref<Surgery[]>([])
@@ -77,8 +81,8 @@ const journeySlideDescription = computed(() => {
     return isPatientContext.value ? 'Visão geral e etapas da sua jornada' : 'Visão geral da jornada do paciente'
   }
   return isPatientContext.value
-    ? 'Metas, exames e checklist — toque para ver detalhes e avaliações'
-    : `Metas, exames e checklist de ${linkedPatientName.value}`
+    ? 'Metas e exames — toque para ver detalhes e avaliações'
+    : `Metas e exames de ${linkedPatientName.value}`
 })
 
 function goJourneySlide(index: 0 | 1) {
@@ -114,9 +118,9 @@ const mergedGoals = computed(() => {
   const mock = patientMock.value
   const pid = journeyProfileId.value
   if (!mock?.goals || !pid) return []
-  return mock.goals.map((g) => ({
+  return mock.goals.map((g: GoalItem) => ({
     ...g,
-    entries: g.entries?.map((e) => {
+    entries: g.entries?.map((e: GoalProgressEntry) => {
       const p = evalStore.getPatch(pid, g.id, e.id)
       if (!p) return e
       return {
@@ -133,8 +137,7 @@ const mergedGoals = computed(() => {
 const hasJourneyFollowUpContent = computed(
   () =>
     mergedGoals.value.length > 0 ||
-    Boolean(patientMock.value?.exams?.length) ||
-    Boolean(patientMock.value?.clinicalChecklist?.length),
+    Boolean(patientMock.value?.exams?.length),
 )
 
 const goalProgressPrefix = computed(() => (isCompanionContext.value ? 'Está em' : 'Você está em'))
@@ -142,7 +145,7 @@ const goalProgressPrefix = computed(() => (isCompanionContext.value ? 'Está em'
 function normalizePersonName(s: string) {
   return s
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim()
@@ -159,7 +162,7 @@ const patientCareSurgery = computed(() => {
   const name = patientCareDisplayName.value
   if (!name || (!isPatientContext.value && !isCompanionContext.value)) return null
   const n = normalizePersonName(name)
-  return surgeries.value.find((row) => normalizePersonName(row.patient_name) === n) ?? null
+  return surgeries.value.find((row: Surgery) => normalizePersonName(row.patient_name) === n) ?? null
 })
 
 const patientCareStatus = computed(() => patientCareSurgery.value?.status ?? 'SCHEDULED')
@@ -169,7 +172,7 @@ const overallProgress = computed(() => {
   const goals = patientGoals.value
   if (goals.length === 0) return 0
   const percentage =
-    goals.reduce((acc, goal) => acc + Math.min(100, (goal.current / goal.target) * 100), 0) / goals.length
+    goals.reduce((acc: number, goal: GoalItem) => acc + Math.min(100, (goal.current / goal.target) * 100), 0) / goals.length
   return Math.round(percentage)
 })
 
@@ -181,11 +184,11 @@ const patientMoments = computed(() => {
   return buildPatientMoments(journey, patientCareStatus.value, overallProgress.value, patientCareMatched.value)
 })
 
-const journeyFocusMoment = computed(() => patientMoments.value.find((m) => m.status === 'Em foco agora') ?? null)
+const journeyFocusMoment = computed(() => patientMoments.value.find((m: JourneyMoment) => m.status === 'Em foco agora') ?? null)
 
 const journeyIsComplete = computed(
   () =>
-    patientMoments.value.length > 0 && patientMoments.value.every((m) => m.status === 'Concluído'),
+    patientMoments.value.length > 0 && patientMoments.value.every((m: JourneyMoment) => m.status === 'Concluído'),
 )
 
 function journeyStepIndex(moment: JourneyMoment) {
@@ -251,10 +254,6 @@ function surgeryStatusLabelPt(status: SurgeryStatus): string {
   return m[status] ?? status
 }
 
-function surgeryTypeLabelPt(type: SurgeryType): string {
-  return type === 'bariatrica' ? 'Bariátrica' : 'Cesárea'
-}
-
 function riskLabelPt(level: RiskLevel): string {
   const m: Record<RiskLevel, string> = {
     baixo: 'baixo',
@@ -285,11 +284,11 @@ const sortedAgendaSurgeries = computed(() =>
 )
 
 const openCriticalAlerts = computed(() =>
-  alertsStore.items.filter((a) => a.severity === 'CRITICAL' && !a.resolved_at),
+  alertsStore.items.filter((a: Alert) => a.severity === 'CRITICAL' && !a.resolved_at),
 )
 
 const openWarningAlerts = computed(() =>
-  alertsStore.items.filter((a) => a.severity === 'WARNING' && !a.resolved_at),
+  alertsStore.items.filter((a: Alert) => a.severity === 'WARNING' && !a.resolved_at),
 )
 
 function alertRelativeHint(alert: Alert) {
@@ -316,6 +315,9 @@ onMounted(async () => {
 
 <template>
   <section class="min-w-0 space-y-6">
+    <!-- ============================================================ -->
+    <!-- PATIENT / COMPANION JOURNEY PANEL                            -->
+    <!-- ============================================================ -->
     <div v-if="showPatientJourneyPanel && patientMock" class="min-w-0 space-y-4">
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0 flex-1">
@@ -352,7 +354,7 @@ onMounted(async () => {
             v-if="journeySlideIndex === 0"
             type="button"
             class="rounded-full p-2 text-[#0f2743] transition hover:bg-black/5 dark:text-[#FFE14D] dark:hover:bg-white/10"
-            aria-label="Ir para acompanhamento: metas, exames e checklist"
+            aria-label="Ir para acompanhamento: metas e exames"
             @click="goJourneySlide(1)"
           >
             <ChevronRight class="h-6 w-6" stroke-width="2" />
@@ -360,12 +362,14 @@ onMounted(async () => {
         </div>
       </div>
 
+      <!-- Carousel container -->
       <div class="min-w-0 max-w-full overflow-x-hidden">
         <div
           ref="journeyCarouselRef"
           class="flex min-h-0 min-w-0 w-full max-w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           @scroll.passive="onJourneyCarouselScroll"
         >
+          <!-- Slide 0: Journey overview -->
           <div class="box-border min-w-0 max-w-full flex-[0_0_100%] snap-start overflow-x-hidden pb-2">
             <div v-if="patientMoments.length > 0" class="space-y-6">
             <div class="relative pt-1">
@@ -399,6 +403,7 @@ onMounted(async () => {
               </div>
             </div>
 
+            <!-- Focus moment highlight -->
             <div>
               <div
                 v-if="journeyFocusMoment"
@@ -429,6 +434,7 @@ onMounted(async () => {
               </div>
             </div>
 
+            <!-- Journey steps -->
             <div class="border-t border-slate-200/80 pt-6 dark:border-slate-700/80">
               <p class="mb-4 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Como está organizada sua jornada
@@ -485,6 +491,7 @@ onMounted(async () => {
             </div>
           </div>
 
+          <!-- Slide 1: Follow-up (goals + exams) -->
           <div class="box-border min-w-0 max-w-full flex-[0_0_100%] snap-start overflow-x-hidden pb-6">
             <div class="space-y-4">
             <div v-if="mergedGoals.length > 0" class="grid gap-4 lg:grid-cols-3">
@@ -524,29 +531,6 @@ onMounted(async () => {
               </ul>
             </div>
 
-            <div
-              v-if="patientMock?.clinicalChecklist?.length"
-              class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900"
-            >
-              <h3 class="mb-2 text-base font-semibold text-slate-700 dark:text-slate-100">
-                Checklist clínico (orientação da equipe)
-              </h3>
-              <ul>
-                <ExpandableDetailRow
-                  v-for="item in patientMock.clinicalChecklist"
-                  :key="item.id"
-                  :title="item.name"
-                  :badge="examStatusLabel(item.status)"
-                  :badge-class="examBadgeClass(item.status)"
-                  :summary="item.detail?.summary"
-                  :criteria="item.detail?.criteria"
-                  :meta="
-                    item.detail ? `${item.detail.lastEvaluatedAt} · ${item.detail.evaluator}` : undefined
-                  "
-                />
-              </ul>
-            </div>
-
               <p
                 v-if="!hasJourneyFollowUpContent"
                 class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-600 dark:text-slate-400"
@@ -559,6 +543,9 @@ onMounted(async () => {
       </div>
     </div>
 
+    <!-- ============================================================ -->
+    <!-- COMPANION: phase cards + alerts                               -->
+    <!-- ============================================================ -->
     <div
       v-if="isCompanionContext"
       class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-900"
@@ -567,7 +554,7 @@ onMounted(async () => {
         Acompanhamento de {{ linkedPatientName }}
       </h2>
       <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Visão resumida do acompanhamento, do grande dia na maternidade e da recuperação — conforme o perfil vinculado.
+        Visão resumida do acompanhamento, preparação e recuperação pós-cirurgia bariátrica — conforme o perfil vinculado.
       </p>
     </div>
 
@@ -609,33 +596,37 @@ onMounted(async () => {
       </div>
     </div>
 
+    <!-- ============================================================ -->
+    <!-- OPERATIONAL DASHBOARD (equipe_cirurgia)                      -->
+    <!-- ============================================================ -->
     <div v-if="showOperationalDashboard" class="space-y-6">
       <div
         v-if="loading"
         class="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
       >
-        Carregando agenda...
+        Carregando painel...
       </div>
 
       <template v-else>
+        <!-- Hero header with summary cards -->
         <div
           class="overflow-hidden rounded-2xl border border-[#f3e5a8]/80 bg-gradient-to-br from-[#fff9e8] via-white to-[#fffdf5] shadow-sm dark:border-[#1b2747] dark:from-[#0a1332] dark:via-[#07122E] dark:to-[#0f1834]"
         >
           <div class="flex flex-col gap-5 px-5 py-6 sm:flex-row sm:items-start sm:justify-between sm:px-8 sm:py-8">
             <div class="min-w-0">
               <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#9e8500] dark:text-[#FFE14D]/90">
-                Equipe · Início
+                Equipe · Painel bariátrico
               </p>
               <div class="mt-2 flex items-center gap-2 text-[#0f2743] dark:text-white">
                 <Calendar class="h-6 w-6 shrink-0 text-[#9e8500] dark:text-[#FFE14D]" stroke-width="1.75" />
-                <h1 class="text-xl font-semibold leading-tight sm:text-2xl"> Agenda operacional </h1>
+                <h1 class="text-xl font-semibold leading-tight sm:text-2xl"> Painel operacional </h1>
               </div>
               <p class="mt-2 text-sm capitalize text-slate-600 dark:text-slate-300">
                 {{ agendaDateLong }}
               </p>
               <p class="mt-2 max-w-xl text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                Visão do dia: procedimentos por horário, sala e recuperação, com alertas que precisam de resposta imediata.
-                Jornadas e metas dos pacientes ficam em
+                Acompanhe pacientes em pré e pós-operatório, cirurgias agendadas, alertas de reganho de peso e exames
+                pendentes. Jornadas e metas dos pacientes ficam em
                 <span class="font-medium text-[#0f2743] dark:text-[#FFE14D]/90">Avaliações da jornada</span>
                 quando disponível ao seu perfil.
               </p>
@@ -648,32 +639,10 @@ onMounted(async () => {
                 class="rounded-xl border border-[#c8a800]/25 bg-white/90 px-3 py-2.5 dark:border-[#FFE14D]/20 dark:bg-[#152754]/80"
               >
                 <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Hoje
+                  Pré-op
                 </p>
                 <p class="mt-0.5 text-lg font-semibold tabular-nums text-[#0f2743] dark:text-[#FFE14D]">
-                  {{ summary.surgeries_today }}
-                </p>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Procedimentos</p>
-              </div>
-              <div
-                class="rounded-xl border border-[#c8a800]/25 bg-white/90 px-3 py-2.5 dark:border-[#FFE14D]/20 dark:bg-[#152754]/80"
-              >
-                <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Em sala
-                </p>
-                <p class="mt-0.5 text-lg font-semibold tabular-nums text-[#0f2743] dark:text-[#FFE14D]">
-                  {{ summary.in_surgery }}
-                </p>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Cirurgia</p>
-              </div>
-              <div
-                class="rounded-xl border border-[#c8a800]/25 bg-white/90 px-3 py-2.5 dark:border-[#FFE14D]/20 dark:bg-[#152754]/80"
-              >
-                <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Recuperação
-                </p>
-                <p class="mt-0.5 text-lg font-semibold tabular-nums text-[#0f2743] dark:text-[#FFE14D]">
-                  {{ summary.in_recovery }}
+                  {{ summary.patients_pre_op }}
                 </p>
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">Pacientes</p>
               </div>
@@ -681,23 +650,45 @@ onMounted(async () => {
                 class="rounded-xl border border-[#c8a800]/25 bg-white/90 px-3 py-2.5 dark:border-[#FFE14D]/20 dark:bg-[#152754]/80"
               >
                 <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Na fila
+                  Pós-op
                 </p>
                 <p class="mt-0.5 text-lg font-semibold tabular-nums text-[#0f2743] dark:text-[#FFE14D]">
-                  {{ summary.scheduled }}
+                  {{ summary.patients_post_op }}
                 </p>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Agendadas</p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Pacientes</p>
+              </div>
+              <div
+                class="rounded-xl border border-[#c8a800]/25 bg-white/90 px-3 py-2.5 dark:border-[#FFE14D]/20 dark:bg-[#152754]/80"
+              >
+                <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Agendadas
+                </p>
+                <p class="mt-0.5 text-lg font-semibold tabular-nums text-[#0f2743] dark:text-[#FFE14D]">
+                  {{ summary.surgeries_scheduled }}
+                </p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Cirurgias</p>
               </div>
               <div
                 class="rounded-xl border border-error-200/80 bg-error-50/90 px-3 py-2.5 dark:border-error-800/50 dark:bg-error-950/50"
               >
                 <p class="text-[10px] font-medium uppercase tracking-wide text-error-700 dark:text-error-300">
-                  Alertas
+                  Reganho
                 </p>
                 <p class="mt-0.5 text-lg font-semibold tabular-nums text-error-700 dark:text-error-200">
-                  {{ summary.with_alert }}
+                  {{ summary.weight_regain_alerts }}
                 </p>
-                <p class="text-[11px] text-error-600/90 dark:text-error-300/80">Com sinalização</p>
+                <p class="text-[11px] text-error-600/90 dark:text-error-300/80">Alertas</p>
+              </div>
+              <div
+                class="rounded-xl border border-error-300/80 bg-white/90 px-3 py-2.5 dark:border-error-800/40 dark:bg-[#152754]/80"
+              >
+                <p class="text-[10px] font-medium uppercase tracking-wide text-error-700 dark:text-error-300">
+                  Exames
+                </p>
+                <p class="mt-0.5 text-lg font-semibold tabular-nums text-error-700 dark:text-error-200">
+                  {{ summary.pending_exams }}
+                </p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Pendentes</p>
               </div>
               <div
                 class="rounded-xl border border-error-300/80 bg-white/90 px-3 py-2.5 dark:border-error-800/40 dark:bg-[#152754]/80"
@@ -714,13 +705,33 @@ onMounted(async () => {
           </div>
         </div>
 
+        <!-- Quick links -->
         <div class="flex flex-wrap gap-2">
+          <RouterLink
+            v-if="canModule('pacientes')"
+            to="/app/patients"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+          >
+            <Users class="h-4 w-4 shrink-0 opacity-70" stroke-width="2" />
+            Pacientes
+            <ArrowRight class="h-4 w-4 opacity-70" />
+          </RouterLink>
           <RouterLink
             v-if="canModule('alertas')"
             to="/app/alerts"
             class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
           >
-            Central de alertas
+            <AlertTriangle class="h-4 w-4 shrink-0 opacity-70" stroke-width="2" />
+            Alertas
+            <ArrowRight class="h-4 w-4 opacity-70" />
+          </RouterLink>
+          <RouterLink
+            v-if="canModule('orientacoes')"
+            to="/app/orientations"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+          >
+            <BookOpen class="h-4 w-4 shrink-0 opacity-70" stroke-width="2" />
+            Orientações
             <ArrowRight class="h-4 w-4 opacity-70" />
           </RouterLink>
           <RouterLink
@@ -732,16 +743,9 @@ onMounted(async () => {
             Avaliações da jornada
             <ArrowRight class="h-4 w-4 opacity-70" />
           </RouterLink>
-          <RouterLink
-            v-if="canModule('pacientes')"
-            to="/app/patients"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
-          >
-            Pacientes
-            <ArrowRight class="h-4 w-4 opacity-70" />
-          </RouterLink>
         </div>
 
+        <!-- Critical alerts panel -->
         <div
           v-if="openCriticalAlerts.length > 0"
           class="rounded-xl border border-error-200 bg-error-50/80 p-4 dark:border-error-900/50 dark:bg-error-950/35"
@@ -751,22 +755,23 @@ onMounted(async () => {
             <h2 class="text-base font-semibold"> Atenção imediata </h2>
           </div>
           <p class="mt-1 text-sm text-error-800/90 dark:text-error-200/85">
-            Alertas críticos abertos — priorize checagem e registro no monitor do paciente.
+            Alertas críticos abertos — priorize checagem e registro no detalhe do paciente.
           </p>
           <ul class="mt-3 space-y-2">
             <li v-for="alert in openCriticalAlerts" :key="alert.id">
               <RouterLink
-                :to="`/app/surgeries/${alert.surgery_id}/monitor`"
+                :to="`/app/patients/${alert.surgery_id}`"
                 class="flex flex-col gap-0.5 rounded-lg border border-error-200/80 bg-white/90 px-3 py-2.5 transition hover:bg-white dark:border-error-800/40 dark:bg-[#0f1834] dark:hover:bg-[#152754]"
               >
                 <span class="font-medium text-slate-800 dark:text-slate-100">{{ alert.patient_name }}</span>
                 <span class="text-sm text-slate-600 dark:text-slate-300">{{ alert.message }}</span>
-                <span class="text-xs text-slate-500 dark:text-slate-400">{{ alertRelativeHint(alert) }} · abrir monitor</span>
+                <span class="text-xs text-slate-500 dark:text-slate-400">{{ alertRelativeHint(alert) }} · ver detalhes</span>
               </RouterLink>
             </li>
           </ul>
         </div>
 
+        <!-- Warning alerts panel -->
         <div
           v-if="openWarningAlerts.length > 0"
           class="rounded-xl border border-warning-200 bg-warning-50/60 p-4 dark:border-warning-800/40 dark:bg-warning-950/25"
@@ -775,7 +780,7 @@ onMounted(async () => {
           <ul class="mt-2 space-y-2">
             <li v-for="alert in openWarningAlerts" :key="alert.id">
               <RouterLink
-                :to="`/app/surgeries/${alert.surgery_id}/monitor`"
+                :to="`/app/patients/${alert.surgery_id}`"
                 class="flex flex-col gap-0.5 rounded-lg border border-warning-200/80 bg-white/80 px-3 py-2 dark:border-warning-800/30 dark:bg-slate-900/80"
               >
                 <span class="font-medium text-slate-800 dark:text-slate-100">{{ alert.patient_name }}</span>
@@ -786,23 +791,24 @@ onMounted(async () => {
           </ul>
         </div>
 
+        <!-- Patient list sorted by schedule -->
         <div class="rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
           <div class="border-b border-slate-200 px-4 py-4 dark:border-slate-700 sm:px-5">
-            <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100"> Procedimentos por horário </h2>
+            <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100"> Pacientes por horário </h2>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Horários previstos de início; status atual da equipe cirúrgica. Toque para abrir o monitor.
+              Horários previstos de início; status atual do paciente. Toque para abrir o detalhe.
             </p>
           </div>
 
           <div v-if="sortedAgendaSurgeries.length === 0" class="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400 sm:px-5">
-            Nenhum procedimento na lista para exibir na agenda.
+            Nenhum paciente na lista para exibir.
           </div>
 
           <div v-else class="divide-y divide-slate-100 dark:divide-slate-800">
             <RouterLink
               v-for="surgery in sortedAgendaSurgeries"
               :key="surgery.id"
-              :to="`/app/surgeries/${surgery.id}/monitor`"
+              :to="`/app/patients/${surgery.id}`"
               class="flex gap-3 px-4 py-4 transition hover:bg-slate-50 dark:hover:bg-slate-800/50 sm:gap-4 sm:px-5"
             >
               <div class="w-14 shrink-0 text-right sm:w-16">
@@ -825,9 +831,6 @@ onMounted(async () => {
                     <p class="font-semibold text-slate-800 dark:text-slate-100">
                       {{ surgery.patient_name }}
                     </p>
-                    <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                      {{ surgeryTypeLabelPt(surgery.type) }}
-                    </p>
                   </div>
                   <span
                     class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold"
@@ -837,7 +840,7 @@ onMounted(async () => {
                   </span>
                 </div>
                 <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                  Monitor em tempo real · risco {{ riskLabelPt(surgery.risk_level) }}
+                  Risco {{ riskLabelPt(surgery.risk_level) }}
                 </p>
               </div>
             </RouterLink>

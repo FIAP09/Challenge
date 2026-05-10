@@ -29,26 +29,20 @@ const router = createRouter({
           component: () => import('@/views/Dashboard/DashboardView.vue'),
           meta: { title: 'Início', roles: ['super_admin', 'hospital_admin', 'medico', 'enfermeiro'], module: 'dashboard' },
         },
-        { path: 'surgeries', redirect: '/app/dashboard' },
-        {
-          path: 'surgeries/:id/monitor',
-          component: () => import('@/views/Surgeries/SurgeryMonitorView.vue'),
-          meta: { title: 'Monitor', roles: ['super_admin', 'hospital_admin', 'medico', 'enfermeiro'], module: 'monitor' },
-        },
         {
           path: 'alerts',
           component: () => import('@/views/Alerts/AlertsView.vue'),
           meta: { title: 'Alertas', roles: ['super_admin', 'hospital_admin', 'medico', 'enfermeiro'], module: 'alertas' },
         },
         {
-          path: 'alerts/simulacao',
-          component: () => import('@/views/Alerts/AlertSimulationView.vue'),
-          meta: { title: 'Simulação de alertas', roles: ['super_admin', 'hospital_admin', 'medico', 'enfermeiro'], module: 'alertas' },
-        },
-        {
           path: 'patients',
           component: () => import('@/views/Patients/PatientsView.vue'),
-          meta: { title: 'Pacientes', roles: ['super_admin', 'hospital_admin', 'medico'], module: 'pacientes' },
+          meta: { title: 'Pacientes', roles: ['super_admin', 'hospital_admin', 'medico', 'enfermeiro'], module: 'pacientes' },
+        },
+        {
+          path: 'patients/:id',
+          component: () => import('@/views/Patients/PatientDetailView.vue'),
+          meta: { title: 'Detalhe do Paciente', roles: ['super_admin', 'hospital_admin', 'medico', 'enfermeiro'], module: 'pacientes' },
         },
         {
           path: 'journey-evaluations',
@@ -56,14 +50,14 @@ const router = createRouter({
           meta: { title: 'Avaliações da jornada', roles: ['super_admin', 'hospital_admin', 'medico'], module: 'pacientes' },
         },
         {
+          path: 'orientations',
+          component: () => import('@/views/Orientations/OrientationsView.vue'),
+          meta: { title: 'Orientações', roles: ['super_admin', 'hospital_admin', 'medico', 'enfermeiro'], module: 'orientacoes' },
+        },
+        {
           path: 'team',
           component: () => import('@/views/Team/TeamView.vue'),
           meta: { title: 'Equipe', roles: ['super_admin', 'hospital_admin', 'medico'], module: 'equipe' },
-        },
-        {
-          path: 'patients/:id',
-          redirect: '/app/patients',
-          meta: { title: 'Paciente', roles: ['super_admin', 'hospital_admin', 'medico'], module: 'pacientes' },
         },
       ],
     },

@@ -3,11 +3,11 @@ import { useApiFetch } from '@/lib/useApiFetch'
 import type { DashboardSummary } from '@/types/surgery'
 
 const MOCK_DASHBOARD_SUMMARY: DashboardSummary = {
-  surgeries_today: 12,
-  in_surgery: 4,
-  in_recovery: 3,
-  with_alert: 2,
-  scheduled: 5,
+  patients_pre_op: 8,
+  patients_post_op: 15,
+  surgeries_scheduled: 3,
+  weight_regain_alerts: 2,
+  pending_exams: 5,
 }
 
 export const dashboardService = {

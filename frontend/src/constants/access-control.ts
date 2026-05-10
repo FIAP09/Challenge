@@ -11,35 +11,35 @@ interface AccessRule {
 
 const roleAccess: Record<UserRole, AccessRule> = {
   super_admin: {
-    modules: ['dashboard', 'cirurgias', 'monitor', 'alertas', 'pacientes', 'equipe'],
-    submodules: ['resumo', 'lista_cirurgias', 'monitor_tempo_real', 'painel_alertas', 'lista_pacientes', 'detalhe_paciente'],
+    modules: ['dashboard', 'cirurgias', 'alertas', 'pacientes', 'equipe', 'orientacoes'],
+    submodules: ['resumo', 'lista_pacientes', 'detalhe_paciente', 'painel_alertas', 'registro_cirurgia'],
   },
   hospital_admin: {
-    modules: ['dashboard', 'cirurgias', 'monitor', 'alertas', 'pacientes', 'equipe'],
-    submodules: ['resumo', 'lista_cirurgias', 'monitor_tempo_real', 'painel_alertas', 'lista_pacientes', 'detalhe_paciente'],
+    modules: ['dashboard', 'cirurgias', 'alertas', 'pacientes', 'equipe', 'orientacoes'],
+    submodules: ['resumo', 'lista_pacientes', 'detalhe_paciente', 'painel_alertas', 'registro_cirurgia'],
   },
   medico: {
-    modules: ['dashboard', 'cirurgias', 'monitor', 'alertas', 'pacientes', 'equipe'],
-    submodules: ['resumo', 'lista_cirurgias', 'monitor_tempo_real', 'painel_alertas', 'lista_pacientes', 'detalhe_paciente'],
+    modules: ['dashboard', 'cirurgias', 'alertas', 'pacientes', 'equipe', 'orientacoes'],
+    submodules: ['resumo', 'lista_pacientes', 'detalhe_paciente', 'painel_alertas', 'registro_cirurgia'],
   },
   enfermeiro: {
-    modules: ['dashboard', 'cirurgias', 'monitor', 'alertas'],
-    submodules: ['resumo', 'lista_cirurgias', 'monitor_tempo_real', 'painel_alertas'],
+    modules: ['dashboard', 'alertas', 'pacientes', 'orientacoes'],
+    submodules: ['resumo', 'lista_pacientes', 'painel_alertas'],
   },
 }
 
 const contextAccess: Record<ViewContextType, AccessRule> = {
   acompanhante: {
-    modules: ['dashboard', 'alertas'],
-    submodules: ['resumo', 'painel_alertas'],
+    modules: ['dashboard', 'alertas', 'pacientes', 'orientacoes'],
+    submodules: ['resumo', 'painel_alertas', 'detalhe_paciente'],
   },
   paciente: {
-    modules: ['dashboard'],
-    submodules: ['resumo'],
+    modules: ['dashboard', 'pacientes', 'orientacoes'],
+    submodules: ['resumo', 'detalhe_paciente'],
   },
   equipe_cirurgia: {
-    modules: ['dashboard', 'cirurgias', 'monitor', 'alertas', 'pacientes', 'equipe'],
-    submodules: ['resumo', 'lista_cirurgias', 'monitor_tempo_real', 'painel_alertas', 'lista_pacientes', 'detalhe_paciente'],
+    modules: ['dashboard', 'cirurgias', 'alertas', 'pacientes', 'equipe', 'orientacoes'],
+    submodules: ['resumo', 'lista_pacientes', 'detalhe_paciente', 'painel_alertas', 'registro_cirurgia'],
   },
 }
 
@@ -55,7 +55,6 @@ function defaultSubmodulesFor(role: UserRole, context: ViewContextType): AppSubm
   return a.filter((s) => b.includes(s))
 }
 
-/** Modulos efetivos: lista da API, se enviada; senao intersecao perfil x contexto (demo / fallback). */
 export function getEffectiveModules(
   role: UserRole,
   context: ViewContextType,
